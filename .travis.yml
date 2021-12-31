@@ -2,7 +2,12 @@ services:
   - docker
 
 env:
-  - DOCKER_COMPOSE_VERSION=1.23.2
+  global:
+    - DOCKER_COMPOSE_VERSION=1.23.2
+    - secure: "J4AYoBQaxbCOnrPSgk9WcMoPqG2+QHgmRY4qBTfn9nUxhg4DkQDqPug1mHWsbJIPUa/TixPhO7vFYr/i5JG0Y5Frn8q0hUpWga/0bKuuxChJ+8O0hInY3keuUu1+EyJKiszcFhP0lb0GbJnydGOFo3mMSAF80e2hRb06KsuOv8sPAUVsfXUURgUydu1pkEKRxsIPpQPRovX3UMF2Gixd6EGzSOTYE33XQlY5FuWxk9NqbzMbDs8a4wVC4p4CzvwZYWWRHQ1XKgrZ3q7LvPlwpGCvu82veo4NFzo+3y/i8r/Ta6tlPTtT2RnCsqOnknaIfrFhRLj90a9pZWsZgmgHfHi5QjKDReDTJYGoBiREW+QveCe5l/2SEivxyqG59A+xid1Fg1RKlonqu/utSr2CTrua674HMcBH1YhEpr5757dAnnnyXhjo4HK2JLbNW5dDnvut+3zI01NieKb9riBHmyizYWPbntwJklmHTkAxEXCwGh9tL7bHSHCJMN27a0+m6mzvW6sXRAPXpPnHGdQG56tDTFbuEi3W/oUA0gt11KRyOVXDAMeSd/ZnpjDyHDD5vORufiFxTd0YKUzFuG9D7egVyfNSY/LZmGh44eCVOwylmYStQft+uzu4T+TIrLMZEqsnTk9onmP2opyfLztuYcrUXb/XkGMdyOO9qp9HOsQ="
+    - secure: "WeOskA3z46Kxx1e+tvt/NQBJo1U783R/yb99qKdG5VRuB246LP2hquS6khulzV3IfmNduZASLq30S83mPDQkd6DPbtG9WIotLmfRNVkEm3SbGB12UNb1yW+NnLJxQcTGQhh9ioyWYwJgurZqsSM9LpoDa9EGNbn/97bkSXeyajvKJVLFw3n1vRzhMb/uRYXj7O1CUkS+zaje4rou+edFm3BViyiiOjLAFJZSOXTDI3gXRoOuawEciWEMRkkKqXk1CZVtmqVaVYswZe7lKn5tcbE87ktTqv7190PuE89rfX7Cm8Rgk5hvH1rMHifMToZoUfTP5J/8OvOnApVDKziANIQKA30DryCip7OTABmW6cbmwDefKFLR3s5FeR0Lh2eZr0F1Fqqe9em2f4bQUf5mWBvvzR33ME7Sgnxuc3sbELsqIIXyPPwTRYGG+SKEn1Mxic/wAsczcvxH+ChCdvTTAlNLlUeZR6b/64YIAUQ/D+A/RWwPV9xYvyERaJGCnnd1dosl423lblgL998Frt7tVf+hQeXv22xmGJmwYfk1VKI30Gg/H67PJDbckeMp3EnSih3d3MMZFh+PwHFgY6WG/thdYfsGkZO/OjOLmc/BhgS+JZXmhCYJJBqzQqnMUl2iXF4oguZN4CAhWPVedbkScZvYNgi7ueYHwnW6rbri9Wg="
+
+
 
 before_install:
   - sudo rm /usr/local/bin/docker-compose
@@ -11,6 +16,10 @@ before_install:
   - sudo mv docker-compose /usr/local/bin
   - docker --version
   - docker-compose version
+  - echo "Login into Docker Hub"
+  - echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+  - export GIT_SHA=`git rev-parse --short HEAD`
+  - echo "Building commit $GIT_SHA"
 
 jobs:
   include:
@@ -27,3 +36,19 @@ jobs:
         - cd Chapter04
         - docker-compose build static-analysis
         - docker-compose run static-analysis
+    - stage: push
+      script:
+        - cd Chapter04
+        - docker-compose build server
+        - docker tag thoughts_server:latest capybaratranslation/thoughts-backend:$GIT_SHA
+        - docker push capybaratranslation/thoughts-backend:$GIT_SHA
+        - docker tag thoughts_server:latest capybaratranslation/thoughts-backend:$TRAVIS_BRANCH
+      deploy:
+        - provider: script
+          script: docker push capybaratranslation/thoughts-backend:$TRAVIS_BRANCH
+          on:
+            branch: master
+        - provider: script
+          script: docker push capybaratranslation/thoughts-backend:$TRAVIS_TAG
+          on:
+            tags: True
