@@ -1,15 +1,19 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
     name: thoughts-backend-ingress
     namespace: example
 spec:
+    ingressClassName: nginx
     rules:
         - host: thoughts.example.local
           http:
             paths:
               - backend:
-                  serviceName: thoughts-service
-                  servicePort: 80
+                  service:
+                    name: thoughts-service
+                    port:
+                      number: 80
                 path: /
+                pathType: Prefix
