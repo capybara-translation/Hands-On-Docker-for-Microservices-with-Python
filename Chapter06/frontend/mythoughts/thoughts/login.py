@@ -11,7 +11,7 @@ def login(request):
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
 
-        login_url = settings.USER_BACKEND + '/api/login'
+        login_url = settings.USER_BACKEND + '/api/login/'
         data = {
             'username': username,
             'password': password,
